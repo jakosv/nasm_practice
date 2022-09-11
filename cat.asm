@@ -98,8 +98,9 @@ _start:
 	mov ebx, [esi]	; pass filename string
 	mov ecx, 000h	; O_RDONLY
 	int 80h
-	cmp eax, fffff000h
-	jl .open_dest	; check errors
+	mov ebx, eax
+	and ebx, 0xfffff000
+	jz .copy	; check errors
 %else
 	push dword 000h	; O_RDONLY
 	push dword [esi]	; pass filename string
@@ -136,7 +137,7 @@ _start:
 .end_copy:
 %ifdef OS_LINUX
 	mov eax, 6	; close syscall
-	mov ebx, [sorce]	; source file descriptor
+	mov ebx, [source]	; source file descriptor
 	int 80h	; close source file
 %else
 	push dword [source]

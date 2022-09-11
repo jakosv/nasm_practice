@@ -112,8 +112,9 @@ _start:
 	mov ebx, [esi]	; pass filename string
 	mov ecx, 000h	; O_RDONLY
 	int 80h
-	cmp eax, fffff000h
-	jl .open_dest	; check errors
+	mov ebx, eax
+	and ebx, 0xfffff000
+	jz .open_dest	; check errors
 %else
 	push dword 000h	; O_RDONLY
 	push dword [esi]	; pass filename string
@@ -140,8 +141,9 @@ _start:
 	mov ecx, 001h + 040h + 200h	; O_WRONLY | O_CREATE | O_TRUNC
 	mov edx, 0666q	; access rights
 	int 80h
-	cmp eax, fffff000h
-	jl .copy		; check error
+	mov ebx, eax
+	and ebx, 0xfffff000
+	jz .copy		; check error
 %else
 	push dword 0666q	; access rights
 	push dword 601h	; O_WRONLY | O_CREATE | O_TRUNC
@@ -179,7 +181,7 @@ _start:
 .end_copy:
 %ifdef OS_LINUX
 	mov eax, 6	; close syscall
-	mov ebx, [sorce]	; source file descriptor
+	mov ebx, [source]	; source file descriptor
 	int 80h	; close source file
 	mov eax, 6
 	mov ebx, [dest]
