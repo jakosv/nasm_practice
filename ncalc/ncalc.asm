@@ -18,14 +18,12 @@
 	push eax	; anything
 	int 0x80	; make syscall
 	add esp, 16	; clear stack
-  %elifdef OS_LINUX
+  %else
 	mov eax, 4
 	mov ebx, 1
 	mov ecx, esi
 	mov edx, 1
 	int 0x80
-  %else
-    %error Please choose OS_FREEBSD or OS_LINUX
   %endif
 
 	add esp, 4	; clear ESI data
@@ -66,15 +64,13 @@
 	push eax	; anything
 	int 0x80	; make syscall
 	add esp, 16 	; clean stack
-    %elifdef OS_LINUX
+    %else
 	mov eax, 4
 	mov ebx, 1
 	mov ecx, esi
 	mov edx, len
 	int 0x80
-  %else
-    %error Please choose OS_FREEBSD or OS_LINUX
-  %endif
+    %endif
 
 	add esp, 4 * dwords_count
 	popf
@@ -100,7 +96,7 @@
 	push eax	; some dword
 	int 0x80
 	add esp, 16
-  %elifdef OS_LINUX
+  %else
 	push ebx ; save EBX
 	mov eax, 3
 	mov ecx, ebx 
@@ -108,8 +104,6 @@
 	mov edx, 1
 	int 0x80
 	pop ebx	; restore EBX
-  %else
-    %error Please choose OS_FREEBSD or OS_LINUX
   %endif
 
 	test eax, eax	; if read zero bytes (end of file)
