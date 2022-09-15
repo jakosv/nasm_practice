@@ -1,211 +1,73 @@
+%include "kernel.inc"
+
 global _start
+extern quit
 
 section .text
 
-; write_block(file: dword, data: address, bytes: dword)
-write_block:
-	push ebp
-	mov ebp, esp
-
-	mov ecx, [ebp+12]	; save data address
-	mov edx, [ebp+16]	; save data size 
-%ifdef OS_LINUX
-	push ebx
-	mov eax, 4	; write syscall
-	mov ebx, [ebp+8]	; output descriptor
-	int 80h
-	pop ebx
-%else
-	push edx	; data size (bytes)
-	push ecx	; data address
-	push dword [ebp+8]	; file descriptor	
-	mov eax, 4
-	push eax
-	int 80h
-	add esp, 16
-%endif
-	mov esp, ebp
-	pop ebp
-	ret
-
-; print_str(string: address, strlen: dword)
-print_str:
-	push ebp
-	mov ebp, esp
-
-	push dword [ebp+12]	; string length
-	push dword [ebp+8]	; string address
-	push dword 1	; standard output descriptor
-	call write_block
-	add esp, 12
-
-	mov esp, ebp
-	pop ebp
-	ret
-
-
-; read_block(file: dword, dest: address, bytes: dword)
-read_block:
-	push ebp
-	mov ebp, esp
-%ifdef OS_LINUX
-	push ebx
-	mov eax, 3
-	mov ebx, [ebp+8]	; pass file descriptor
-	mov ecx, [ebp+12]	; pass destination address
-	mov edx, [ebp+16]	; pass bytes count
-	int 80h	; read syscall
-	pop ebx	
-%elifdef OS_FREEBSD
-	push dword [ebp+16]
-	push dword [ebp+12]
-	push dword [ebp+8]
-	mov eax, 3
-	push eax
-	int 80h
-	add esp, 16
-%else
-%error please define either OS_FREEBSD or OS_LINUX
-%endif
-	mov esp, ebp
-	pop ebp
-	ret
-
 section .bss
-source	resd 1
-dest	resd 1
-buff	resb 4096
+source resd 1
+dest resd 1
+argc resd 1
+argvp resd 1
+buff resb 4096
+buffsize equ $-buff
 
 section .text
 ; constants
-err_arg_src	db "source file does not specified", 10
-err_arg_src_s	equ $-err_arg_src
-err_arg_dst	db "destination file does not specified", 10
-err_arg_dst_s	equ $-err_arg_dst
-err_open_src	db "source file open error", 10
-err_open_src_s	equ $-err_open_src
-err_open_dst	db "destination file open error", 10
-err_open_dst_s	equ $-err_open_dst
-
-_start:	
-	mov esi, esp
-	mov ebx, [esi]	; move args count to EBX 
-	cmp ebx, 1	; if args count is greater than 1
-	jg .check_dst	; check second argument
-	push dword err_arg_src_s
-	push dword err_arg_src
-	call print_str
-	add esp, 8
-	jmp .quit
-.check_dst:
-	cmp ebx, 2	; if args count is 2 or greater
-	jg .goon	; goon
-	push dword err_arg_dst_s
-	push dword err_arg_dst
-	call print_str
-	add esp, 8
-	jmp .quit
-.goon:	add esi, 8	; get source filename address
-	; read file
+helpmsg	db "Usage: copy <src> <dest>", 10
+helplen equ $-helpmsg
+err1msg db "Couldn't open source file for reading", 10
+err1len equ $-err1msg
+err2msg db "Couldn't open destination file for writing", 10
+err2len	equ $-err2msg
 %ifdef OS_LINUX
-	mov eax, 5	; open syscall
-	mov ebx, [esi]	; pass filename string
-	mov ecx, 000h	; O_RDONLY
-	int 80h
-	mov ebx, eax
-	and ebx, 0xfffff000
-	jz .open_dest	; check errors
+openwr_flags	equ 241h
 %else
-	push dword 000h	; O_RDONLY
-	push dword [esi]	; pass filename string
-	mov eax, 5	; open syscall
-	push eax
-	int 80h
-	jc .src_open_error	; check errors
-	add esp, 12
-	jmp .open_dest
+openwr_flags	equ 601h
 %endif
-.src_open_error:
-	push dword err_open_src_s
-	push dword err_open_src
-	call print_str
-	add esp, 8
-	jmp .quit
-.open_dest:
+
+main:
+_start:
+	pop dword [argc]	; save arguments
+	mov [argvp], esp
+	cmp dword [argc], 3	; if args count is 3
+	je .args_cnt_ok
+	; print error with write syscall in error output
+	kernel 4, 2, helpmsg, helplen 
+	kernel 1, 1	; exit with error code 2
+.args_cnt_ok:
+	mov esi, [argvp]	; get source filename address
+	mov edi, [esi+4]
+	; open source file for reading
+	kernel 5, edi, 0	; open syscall
+	cmp eax, -1
+	jne .src_open_ok
+	; print error with write syscall in error output
+	kernel 4, 2, err1msg, err1len
+	kernel 1, 2	; exit with error code 1
+.src_open_ok:
 	mov [source], eax	; save source file descriptor
-	add esi, 4	; get destination filename address
-
-%ifdef OS_LINUX
-	mov eax, 5	; open syscall
-	mov ebx, [esi]	; pass filename string
-	mov ecx, 001h + 040h + 200h	; O_WRONLY | O_CREATE | O_TRUNC
-	mov edx, 0666q	; access rights
-	int 80h
-	mov ebx, eax
-	and ebx, 0xfffff000
-	jz .copy		; check error
-%else
-	push dword 0666q	; access rights
-	push dword 601h	; O_WRONLY | O_CREATE | O_TRUNC
-	push dword [esi]	; pass filename string
-	mov eax, 5	; open syscall
-	push eax
-	int 80h
-	jc .dst_open_error	; check error
-	add esp, 16
-	jmp .copy
-%endif
-.dst_open_error:
-	push dword err_open_dst_s
-	push dword err_open_dst
-	call print_str
-	add esp, 8
-	jmp .quit
+	mov esi, [argvp]	; get destination filename address
+	mov edi, [esi+8]
+	; open destintation file for writing
+	kernel 5, edi, openwr_flags, 0666q
+	cmp eax, -1
+	jne .copy		; check error
+	; print error with write syscall in error output
+	kernel 4, 2, err2msg, err2len
+	kernel 1, 3	; exit with error code 2
 
 .copy:	mov [dest], eax	; get destination file descriptor
-.again:	push dword 4096	; pass buffer size
-	push dword buff	; buffer address
-	push dword [source]	; source file desriptor
-	call read_block
-	add esp, 12	; clean stack
-	mov ebx, eax	; save readed bytes
-	; write buffer
-	push ebx	; actual buffer size
-	push dword buff	; buffer address
-	push dword [dest]	; destination file descriptor
-	call write_block
-	add esp, 8
-	cmp ebx, 4096	; if read less than 4096 bytes
-	jl .end_copy	; file ended
+	; read buffer from source file
+.again:	kernel 3, [source], buff, buffsize	; read syscall
+	cmp eax, 0	; check end of file situation
+	je .end_copy
+	; write buffer to destination file
+	kernel 4, [dest], buff, eax	; write syscall
 	jmp short .again	; else read next block
 .end_copy:
-%ifdef OS_LINUX
-	mov eax, 6	; close syscall
-	mov ebx, [source]	; source file descriptor
-	int 80h	; close source file
-	mov eax, 6
-	mov ebx, [dest]
-	int 80h	; close destination file
-%else
-	push dword [source]
-	mov eax, 6
-	push eax
-	int 80h
-	add esp, 8
-	push dword [dest]
-	mov eax, 6
-	push eax
-	int 80h
-	add esp, 8
-%endif
-.quit:
-%ifdef OS_LINUX
-	mov eax, 1	; _exit syscall
-	mov ebx, 0	; exit code status 0
-	int 80h
-%else
-	push dword 0
-	mov eax, 1
-	push eax
-	int 80h
-%endif
+	; close syscall
+	kernel 6, [source]	; close source file
+	kernel 6, [dest]	; close destination file
+	kernel 1, 0	; exit with normal code 0
