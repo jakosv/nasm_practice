@@ -1,13 +1,15 @@
+; if was an error, then EAX contains -1 and error code is in ECX
+; else EAX contains syscall result and ECX contains 0
 %macro kernel 1-* 
 %ifdef OS_FREEBSD
   %rep %0
     %rotate -1
 		push dword %1
   %endrep
-		mov eax, [esp]
+		mov eax, [esp]	; get syscall number
 		int 80h
 		jnc %%ok
-		mov ecx, eax
+		mov ecx, eax	; error code in ecx
 		mov eax, -1
 		jmp short %%q
 %%ok:		xor ecx, ecx
@@ -49,10 +51,10 @@
   %endif
 		int 80h
 		mov ebx, eax
-		and ebx, 0fffff000h
+		and ebx, 0fffff000h	; check error
 		cmp ebx, 0fffff000h
 		jne %%ok
-		mov ecx, eax
+		mov ecx, eax	; error code in ecx
 		neg ecx
 		mov eax, -1
 		jmp short %%q
