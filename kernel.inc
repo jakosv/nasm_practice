@@ -1,3 +1,29 @@
+%define stdin	0
+%define stdout	1
+%define stderr	2
+
+%define sys_exit	1
+%define sys_read	3
+%define sys_write	4
+%define	sys_open	5
+%define sys_close	6
+
+; open syscall
+%define O_RDONLY	000h	; read only
+%define O_WRONLY	001h	; write only
+%define O_RDWR		002h	; read and write
+%ifdef OS_FREEBSD
+%define O_CREAT		200h	; allow file creation
+%define O_EXCL		800h	; require file creation
+%define O_TRUNC		400h	; erase file if it exists
+%define O_APPEND	008h	; append in the end it file exists
+%else	; assume it's Linux
+%define O_CREAT		040h	; allow file creation
+%define O_EXCL		080h	; require file creation
+%define O_TRUNC		200h	; erase file if it exists
+%define O_APPEND	400h	; append in the end it file exists
+%endif
+
 ; if was an error, then EAX contains -1 and error code is in ECX
 ; else EAX contains syscall result and ECX contains 0
 %macro kernel 1-* 
