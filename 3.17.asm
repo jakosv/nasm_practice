@@ -11,17 +11,17 @@ is_letter:
 	mov ebp, esp
 
 	mov al, [arg(1)]
-	cmp al, 'A'		; if AL < 'A'
-	jl .false		;	return false
-	cmp al, 'Z'		; if AL <= 'Z'
-	jle .true		;	'A' <= AL <= 'Z'
+	cmp al, 'A'				; if AL < 'A'
+	jl .false				;	return false
+	cmp al, 'Z'				; if AL <= 'Z'
+	jle .true				;	'A' <= AL <= 'Z'
 
-	cmp al, 'z'		; if Al > 'z'
-	jg .false		;	return false
-	cmp al, 'a'		; if AL >= 'a'
-	jge .true		;	'a' <= AL <= 'z'
-				; else
-.false:	xor al, al		;	return false
+	cmp al, 'z'				; if Al > 'z'
+	jg .false				;	return false
+	cmp al, 'a'				; if AL >= 'a'
+	jge .true				;	'a' <= AL <= 'z'
+						; else
+.false:	xor al, al				;	return false
 	jmp short .quit
 .true:	mov al, 1		
 .quit:	mov esp, ebp
@@ -30,7 +30,6 @@ is_letter:
 
 section .bss
 buf	resb 4096
-buflen	equ $-buf
 char	resb 1
 
 section .text

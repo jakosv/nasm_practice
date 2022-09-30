@@ -1,6 +1,5 @@
 %include "kernel.inc"
 %include "procedure.inc"
-%include "stud_io.inc"
 
 global _start
 
@@ -66,42 +65,40 @@ _start:
 main:
 	xor ebx, ebx				; EBX := 0 (buf index)
 	mov byte [first], 1			; set first word flag := 1
-.again:
+.read_next:	
 	pcall read_word, wstr			; read word
 	test ecx, ecx				; if was read 0 bytes
 	jz .skip_copy				; then skip add word
 	cmp byte [first], 0			; if it's not first word
 	jne .first
-	mov byte [buf + ebx], ' '		; insert space 
+	mov byte [buf + ebx], ' '		; insert space separator 
 	inc ebx					; increase index
 	jmp short .copy
 .first:	mov byte [first], 0			; else set flag := 0
-.copy:	
-	mov byte [buf + ebx], '('		; insert open bracket
+.copy:	mov byte [buf + ebx], '('		; insert open bracket
 	inc ebx
 	mov esi, wstr				; ESI := word address
-	mov edi, buf				; EDI := buf address
-	add edi, ebx
+	lea edi, [buf + ebx]			; EDI := buf address
 						; ECX := word length
 	mov edx, ecx
 	cld
-	rep movsb				; mov word to buf
+	rep movsb				; copy word to buf
 	add ebx, edx				; increase buf index
 	mov byte [buf + ebx], ')'		; insert close bracket
 	inc ebx					; increase index
 .skip_copy:
 	cmp eax, -2				; if end of file
-	je .end_read
-	cmp eax, -1				; if end of line
-	jne .again 
-
+	je .end_read				; stop reading
+	cmp eax, -1				; if it's not end of line
+	jne .read_next				; read next word 
+						; else print line
 	mov byte [buf + ebx], 10		; add '\n' char
 	inc ebx
 	kernel sys_write, stdout, buf, ebx	; write buf to stdout
+
 	xor ebx, ebx				; EBX := 0 (clear buf)
 	mov byte [first], 1			; set first word flag := 1
-	jmp .again				; read next char
+	jmp .read_next				; read next char
 
 .end_read:
-	kernel sys_write, stdout, buf, ebx	; write buf to stdout
 	kernel sys_exit, 0			; exit with code 0
