@@ -11,9 +11,9 @@ section .text
 read_word:
 	push ebp
 	mov ebp, esp
-	sub esp, 8				; local(1) - temp char 
+	sub esp, 4				; local(1) - temp char 
+
 	push ebx				; save EBX
-	mov byte [local(2)], 0			; local(2) - flag
 	mov edi, [arg(1)]			; EDI := string address
 	xor ebx, ebx				; ECX := 0 (word length)
 	lea esi, [local(1)]			; ESI := char address
@@ -26,22 +26,18 @@ read_word:
 	cmp al, 10				; if end of line
 	je .end_line				; quit 
 	cmp al, 9				; if AL = tab 
-	jne .check_space	
-	cmp byte [local(2)], 1			; if wasn't word
-	jne .read_char				; continue reading
-	jmp short .end_read			; quit
-.check_space:
+	je .skip_spaces	
 	cmp al, 32				; if AL = space
-	jne .char				; normal char
-	cmp byte [local(2)], 1			; if wasn't word
-	jne .read_char				; continue reading
-	jmp short .end_read			; else quit
-.char:
+	je .skip_spaces				; normal char
+
 	mov [edi + ebx], al			; else save char
 	inc ebx					; increase length
-	mov byte [local(2)], 1			; set flag word was
-	jmp .read_char			; read next char
+	jmp short .read_char			; read next char
 
+.skip_spaces:
+	test ebx, ebx				; if wasn't word
+	jz .read_char				; continue reading
+	jmp short .end_read			; else quit
 .end_line:
 	mov eax, -1				; EAX := -1
 	jmp short .quit
@@ -58,23 +54,20 @@ read_word:
 section .bss
 buf	resb 4096				; temp line buffer
 wstr	resb 128				; temp word buffer
-first	resb 1					; first word flag
 
 section .text
 _start:
 main:
 	xor ebx, ebx				; EBX := 0 (buf index)
-	mov byte [first], 1			; set first word flag := 1
 .read_next:	
 	pcall read_word, wstr			; read word
 	test ecx, ecx				; if was read 0 bytes
 	jz .skip_copy				; then skip add word
-	cmp byte [first], 0			; if it's not first word
-	jne .first
-	mov byte [buf + ebx], ' '		; insert space separator 
+	test ebx, ebx				; if it's first word
+	jz .copy				; just copy
+	mov byte [buf + ebx], ' '		; else insert separator 
 	inc ebx					; increase index
 	jmp short .copy
-.first:	mov byte [first], 0			; else set flag := 0
 .copy:	mov byte [buf + ebx], '('		; insert open bracket
 	inc ebx
 	mov esi, wstr				; ESI := word address
@@ -97,7 +90,6 @@ main:
 	kernel sys_write, stdout, buf, ebx	; write buf to stdout
 
 	xor ebx, ebx				; EBX := 0 (clear buf)
-	mov byte [first], 1			; set first word flag := 1
 	jmp .read_next				; read next char
 
 .end_read:
