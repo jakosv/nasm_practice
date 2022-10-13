@@ -69,6 +69,7 @@ read_num:
 	cmp byte [local(3)], 1		; if number sign is minus
 	jne .plus
 	neg edi
+	inc ebx
 .plus:
 	mov esi, [arg(1)]		; ESI := number address
 	mov [esi], edi			; save number 
