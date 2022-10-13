@@ -20,10 +20,10 @@ main:	pcall read_num, num
 	kernel sys_write, stdout, rnerr, rnlen
 	kernel sys_exit, 1
 .print:
-	mov ebx, [num]			; if ECX = 0
+	mov ebx, [num]
 .again:	
-	test ebx, ebx			; if EBX = 0
-	jz .end_print			; then quit
+	cmp ebx, 0			; if EBX <= 0
+	jle .end_print			; then quit
 	kernel sys_write, stdout, star, 1
 	dec ebx
 	jmp short .again

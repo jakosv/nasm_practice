@@ -27,15 +27,24 @@ is_digit:
 read_num:
 	push ebp
 	mov ebp, esp
-	sub esp, 8			; local(1) - temp char
+	sub esp, 12			; local(1) - temp char
 	mov dword [local(2)], 10	; local(2) := 10 (base)
+	mov byte [local(3)], 0		; local(3) number sign (0 - plus)
 
 	lea esi, [local(1)]		; ESI := local(1) address
 	xor ebx, ebx			; EBX = 0 - number length 
 	xor edi, edi			; EDI = 0 - result number
 
+	kernel sys_read, stdin, esi, 1	; read sign from stdin
+	test eax, eax			; if 0 bytes was read
+	jz .quit			; then quit
+	cmp byte [esi], '-'		; check if character is minus
+	jne .skip_read			; if it's not, then process char 
+	mov byte [local(3)], 1		; set sign flag
+
 .read_char:
 	kernel sys_read, stdin, esi, 1	; read character from stdin
+.skip_read:
 	test eax, eax			; if 0 bytes was read
 	jz .quit			; end of file, quit
 
@@ -57,6 +66,10 @@ read_num:
 .quit:
 	test ebx, ebx			; if number length = 0
 	jz .skip_save			; skip saving number
+	cmp byte [local(3)], 1		; if number sign is minus
+	jne .plus
+	neg edi
+.plus:
 	mov esi, [arg(1)]		; ESI := number address
 	mov [esi], edi			; save number 
 .skip_save:
