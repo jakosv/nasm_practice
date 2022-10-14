@@ -23,7 +23,9 @@ is_digit:
 	pop ebp
 	ret
 
-; read_num(number: address) -> EAX (number length)
+; read_num(number: address): EAX, CL
+; EAX contains number of characters
+; CL contains the last read char or -1 if end-of-file (EOF)
 read_num:
 	push ebp
 	mov ebp, esp
@@ -37,7 +39,7 @@ read_num:
 
 	kernel sys_read, stdin, esi, 1	; read sign from stdin
 	test eax, eax			; if 0 bytes was read
-	jz .quit			; then quit
+	jz .eof			; then quit
 	cmp byte [esi], '-'		; check if character is minus
 	jne .skip_read			; if it's not, then process char 
 	mov byte [local(3)], 1		; set sign flag
@@ -46,11 +48,11 @@ read_num:
 	kernel sys_read, stdin, esi, 1	; read character from stdin
 .skip_read:
 	test eax, eax			; if 0 bytes was read
-	jz .quit			; end of file, quit
+	jz .eof				; end of file, quit
 
 	pcall is_digit, [esi]		; check if character is digit
 	test eax, eax			; if EAX = 0 (false)
-	jz .quit			;	then quit
+	jz .not_digit			;	then quit
 					; else add digit to number
 	mov eax, edi
 	xor edx, edx
@@ -63,7 +65,12 @@ read_num:
 	inc ebx				; increase nubmer length
 	jmp short .read_char		; read next char
 
-.quit:
+.eof:	mov ecx, -1			; ECX := -1 (EOF situation)
+	jmp short .end_read
+.not_digit:
+	mov ecx, [esi]
+
+.end_read:
 	test ebx, ebx			; if number length = 0
 	jz .skip_save			; skip saving number
 	cmp byte [local(3)], 1		; if number sign is minus
