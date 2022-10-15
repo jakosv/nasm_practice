@@ -37,14 +37,27 @@ read_num:
 	xor ebx, ebx			; EBX = 0 - number length 
 	xor edi, edi			; EDI = 0 - result number
 
+.read_spaces:
 	kernel sys_read, stdin, esi, 1	; read sign from stdin
 	test eax, eax			; if 0 bytes was read
 	jz .eof			; then quit
-	cmp byte [esi], '-'		; check if character is minus
-	jne .skip_read			; if it's not, then process char 
-	mov byte [local(3)], 1		; set sign flag
+	
+	cmp byte [esi], 32		; if space (32 - ascii code)
+	je .read_spaces			; then read char again
 
-.read_char:
+	cmp byte [esi], 9		; if tab (9 - ascii code)
+	je .read_spaces			; then read char again
+
+	mov al, [esi]
+	cmp al, '-'			; if character is minus
+	jne .check_plus			; if it isn't, then process char 
+	mov byte [local(3)], 1		; set sign flag
+	jmp short .read_digit		; and go to read first digit
+.check_plus:
+	cmp al, '+'			; if character is plus
+	jne .skip_read			; if it isn't, then process char 
+
+.read_digit:
 	kernel sys_read, stdin, esi, 1	; read character from stdin
 .skip_read:
 	test eax, eax			; if 0 bytes was read
@@ -63,7 +76,7 @@ read_num:
 	add eax, edx			; EAX := EAX + EDX
 	mov edi, eax			; EDI := EAX * 10 + digit
 	inc ebx				; increase nubmer length
-	jmp short .read_char		; read next char
+	jmp short .read_digit		; read next char
 
 .eof:	mov ecx, -1			; ECX := -1 (EOF situation)
 	jmp short .end_read
