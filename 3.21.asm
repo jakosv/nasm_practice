@@ -85,6 +85,7 @@ a	resd 1
 b	resd 1
 res	resd 1
 op	resb 1
+char	resb 1
 
 section .text
 ; constants
@@ -95,6 +96,9 @@ soperr	db "Error: invalid second operand", 10
 soplen	equ $-soperr
 operr	db "Error: invalid operation (use: +, -, *, /)", 10
 oplen	equ $-operr
+experr	db "Error: more than two operands (example: 3 + 5)", 10
+explen	equ $-experr
+
 ; code
 _start:
 main:
@@ -103,11 +107,11 @@ main:
 	cmp ecx, -1			; if EOF situation (ECX = -1)
 	je .end_read
 
-	test eax, eax			; if was read 0 characters	
+	test eax, eax			; if 0 characters were read
 	jz .foperr
 
 	mov [op], cl
-	pcall is_operator, ecx		; check if char after first operand
+	pcall is_operator, ecx		; if char after first operand
 	test eax, eax			; is operator
 	jnz .second_operand
 	
@@ -128,14 +132,39 @@ main:
 	cmp ecx, -1			; if EOF situation (ECX = -1)
 	je .end_read
 
-	test eax, eax			; if was read 0 characters	
+	test eax, eax			; if 0 characters were read
 	jz .soperr
 
+	cmp ecx, 10			; if char following by operand
+	je .calculate			; is caret return, calc expr
+
+.read_follow:
+	kernel sys_read, stdin, char, 1
+	test eax, eax			; if 0 bytes were read
+	jz .calculate
+
+	mov al, [char]
+	cmp al, 32			; if space char
+	je .read_follow
+
+	cmp al, 9			; if tab char
+	je .read_follow
+
+	cmp al, 10			; if carret return
+	je .calculate
+
+	jmp short .experr		; else print error
+
+.calculate:
 	pcall calc, [op], [a], [b]
 	pcall print_num, eax
 	kernel sys_write, stdout, endl, 1
+
 	jmp .read_expr
 
+.experr:
+	kernel sys_write, stdout, experr, explen
+	jmp short .clean_buf
 .foperr:
 	kernel sys_write, stdout, foperr, foplen 
 	jmp short .clean_buf
@@ -144,6 +173,7 @@ main:
 	jmp short .clean_buf
 .operr:
 	kernel sys_write, stdout, operr, oplen 
+
 .clean_buf:
 	kernel sys_read, stdin, op, 1
 	cmp eax, 0			; if can't read 

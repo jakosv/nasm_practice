@@ -22,7 +22,7 @@ read_num:
 
 .read_spaces:
 	kernel sys_read, stdin, esi, 1	; read sign from stdin
-	test eax, eax			; if 0 bytes was read
+	test eax, eax			; if 0 bytes were read
 	jz .eof			; then quit
 	
 	cmp byte [esi], 32		; if space (32 - ascii code)
@@ -43,7 +43,7 @@ read_num:
 .read_digit:
 	kernel sys_read, stdin, esi, 1	; read character from stdin
 .skip_read:
-	test eax, eax			; if 0 bytes was read
+	test eax, eax			; if 0 bytes were read
 	jz .eof				; end of file, quit
 
 	pcall is_digit, [esi]		; check if character is digit
