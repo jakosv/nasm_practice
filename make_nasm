@@ -6,7 +6,7 @@ LD_KEYS=''
 
 if [ $OS = 'macos' ]; then
     NASM_KEYS="$NASM_KEYS -f macho -dOS_FREEBSD" 
-    LD_KEYS="$LD_KEYS -e _start -lSystem -macosx_version_min 10.13"
+    LD_KEYS="$LD_KEYS -e _start -lSystem -macosx_version_min 10.6"
 elif [ $OS = 'freebsd' ]; then
     ARCH='elf32'
     NASM_KEYS="$NASM_KEYS -f elf32 -dOS_FREEBSD" 
@@ -32,6 +32,6 @@ for FNAME in $ARGS; do
     OBJS="$OBJS $FNAME.o"
 done
 
-if [ "$CHANGES" = "true" ]; then
+if [ ! -f "$PNAME" -o "$CHANGES" = "true" ]; then
     ld $LD_KEYS -o $PNAME $OBJS
 fi
