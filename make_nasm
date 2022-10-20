@@ -1,6 +1,6 @@
 #!/bin/sh
 
-OS=macos
+OS=freebsd
 ARGS=$@
 NASM_KEYS='-g'
 LD_KEYS=''
@@ -21,12 +21,16 @@ else
 fi
 
 PNAME=$1
+CHANGES=false
 OBJS=''
 for FNAME in $ARGS; do
-    if ! [ -f "$FNAME.o" ]; then
+    if [ ! -f "$FNAME.o" -o "$FNAME.asm" -nt "$FNAME.o" ]; then
         nasm $NASM_KEYS "$FNAME.asm" $NASM_KEYS
+        CHANGES=true
     fi
     OBJS="$OBJS $FNAME.o"
 done
 
-ld $LD_KEYS -o $PNAME $OBJS
+if [ "$CHANGES" = "true" ]; then
+    ld $LD_KEYS -o $PNAME $OBJS
+fi
