@@ -17,7 +17,8 @@ elif [ $OS = 'linux' ]; then
     NASM_KEYS="$NASM_KEYS -f elf32 -dOS_LINUX" 
     LD_KEYS="$LD_KEYS -m elf_i386"
 else
-    exit "Unknown OS: $OS"
+    echo "Error: unknown OS: $OS"
+    exit 1
 fi
 
 PNAME=$1
