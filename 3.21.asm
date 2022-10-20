@@ -164,7 +164,7 @@ main:
 
 .experr:
 	kernel sys_write, stdout, experr, explen
-	jmp short .clean_buf
+	jmp .clean_buf
 .foperr:
 	kernel sys_write, stdout, foperr, foplen 
 	jmp short .clean_buf
