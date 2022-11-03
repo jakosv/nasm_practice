@@ -1,1 +1,2 @@
-Solving problems from the [taskbook](http://www.stolyarov.info/books/pdf/progintro_taskbook.pdf)
+Solutions of problems from the [task book](http://www.stolyarov.inf
+o/books/pdf/progintro_taskbook.pdf)
