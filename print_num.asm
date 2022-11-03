@@ -46,6 +46,7 @@ print_num:
 	jnz .get_digit			; then get next digit
 	
 	; reverse number string
+	lea ebx, [esi * 4]		; save size of allocated memory
 	mov esi, esp			; ESI := first dword address
 	inc edi				; get last byte position
 	and edi, 11b			; EDI := EDI % 4 (dword = 4 bytes)
@@ -53,7 +54,7 @@ print_num:
 	
 	cmp byte [local(1)], 1		; if sign flag is not 1
 	jne .print_res			; then print number
-	test edi, edi			; if there is splace in curr dword
+	test edi, edi			; if there is place in curr dword
 	jnz .curr_dword			; mov minus char to current dword
 	push dword 0			; allocate dword on stack
 .curr_dword:
@@ -63,7 +64,8 @@ print_num:
 .print_res:
 	kernel sys_write, stdout, esi, ecx
 
-.quit:	pop edi
+.quit:	add esp, ebx			; free allocated memory on stack	
+	pop edi
 	pop esi
 	pop ebx				; restore ebx
 	mov esp, ebp
