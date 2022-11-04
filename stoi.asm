@@ -25,18 +25,18 @@ stoi:
 				; number sign (0 - plus, 1 - minus) 
 	xor edi, edi		; result number
 
-.trim_begin:
-	jcxz .end_read		; if end of string (ECX = 0), then quit
+.trim:
+	jcxz .parse_err		; if end of string (ECX = 0), then quit
 	mov al, [esi]		; AL := current string character
 	cmp al, 32		; if space
-	je .next_begin
+	je .trim_next
 	cmp al, 9		; if tab char
-	je .next_begin
+	je .trim_next
 	cmp al, 10		; if caret return char
 	jne .read_sign
-.next_begin:
+.trim_next:
 	inc esi
-	loop .trim_begin
+	loop .trim
 
 .read_sign:
 	jcxz .parse_err		; if end of string (ECX = 0), then quit
@@ -56,25 +56,14 @@ stoi:
 	jcxz .end_read		; if end of string (ECX = 0), then quit
 	xor eax, eax		; EAX := 0
 	mov al, [esi]		; AL := current string character
-	cmp al, 32		; if space
-	je .trim_end
-	cmp al, 9		; if tab char
-	je .trim_end
-	cmp al, 10		; if caret return char
-	je .trim_end
-
-	cmp al, '-'		; if minus char
-	je .parse_err
-	cmp al, '+'		; if plus char
-	je .parse_err
 
 	push eax		; save EAX value
 	push ecx		; save ECX value
-	pcall is_digit, eax	; if digit	
+	pcall is_digit, eax	; is_digit(AL) (AL = 1 - digit)
 	test eax, eax		; EAX = 1 (it's digit)
-	pop ecx
+	pop ecx			; restore ECX
 	pop eax			; restore EAX value
-	jz .trim_end		; else it isn't digit, trim end spaces
+	jz .end_read		; if it isn't digit (AL=0), end reading 
 	mov byte [local(1)], 1	; set was digit flag to 1
 	sub al, '0'		; char to number
 	push eax		; save digit
@@ -87,24 +76,10 @@ stoi:
 	inc esi			; next address
 	loop .read_char		; dec ECX, and read next char
 
-.trim_end:
-	jcxz .end_read		; if end of string (ECX = 0), then read done 
-	mov al, [esi]		; AL := current string character
-	cmp al, 32		; if space
-	je .next_end
-	cmp al, 9		; if tab char
-	je .next_end
-	cmp al, 10		; if caret return char
-	jne .end_read
-.next_end:
-	inc esi
-	loop .trim_end
-
 .end_read:
 	cmp byte [local(1)], 1	; if there was at least one digit
-	jne .parse_err
-	jcxz .parse_ok		; if end of string, then parse ok
-				; else parse error
+	je .parse_ok		; then return number
+				; else print parse error
 .parse_err:
 	mov cl, 1
 	jmp short .quit

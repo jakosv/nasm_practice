@@ -23,7 +23,7 @@ read_num:
 .read_spaces:
 	kernel sys_read, stdin, esi, 1	; read sign from stdin
 	test eax, eax			; if 0 bytes were read
-	jz .eof			; then quit
+	jz .eof				; then quit
 	
 	cmp byte [esi], 32		; if space (32 - ascii code)
 	je .read_spaces			; then read char again
