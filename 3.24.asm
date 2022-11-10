@@ -27,11 +27,15 @@ main:
 					; read string
 	mov ebx, eax			; EBX := read string length
 	pcall stoi, s, ebx		; stoi(str, slen)
-	test cl, cl			; check parse error
-	jz .print_first			; if CL = 0, then parse ok
+	cmp ecx, -1			; check parse error
+	jne .print_first		; if ECX != -1, then parse ok
 	kernel sys_write, stdout, perr, elen
 	jmp .fail
 .print_first:
+	push eax
+	pcall print_num, ecx
+	kernel sys_write, stdout, endl, 1
+	pop eax
 	pcall itos, eax, s		; number to string
 	pcall puts, s			; print sring
 	kernel sys_write, stdout, endl, 1
