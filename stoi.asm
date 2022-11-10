@@ -6,9 +6,9 @@ extern is_digit
 
 section .text
 
-; stoi(dd str_addr, dd lenght) -> EAX, CL
+; stoi(dd str_addr, dd length) -> EAX, ECX
 ; EAX - result decemical number
-; CL - status code (0 - ok, other - string parse error)
+; ECX - the number of character processed, or -1 if was an error
 stoi:
 	push ebp
 	mov ebp, esp
@@ -81,11 +81,13 @@ stoi:
 	je .parse_ok		; then return number
 				; else print parse error
 .parse_err:
-	mov cl, 1
+	mov ecx, -1
 	jmp short .quit
 
 .parse_ok:
-	mov cl, 0
+	mov eax, [arg(2)]	; EAX := string length
+	sub eax, ecx		; count the number of processed characters
+	mov ecx, eax		; return count
 	cmp byte [local(1) + 1], 1
 				; if sign is minus
 	jne .goon
