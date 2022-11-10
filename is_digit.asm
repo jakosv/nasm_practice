@@ -9,10 +9,10 @@ is_digit:
 	push ebp
 	mov ebp, esp
 
-	mov eax, [arg(1)]
-	cmp eax, '0'			; if EDX < '0'
+	mov al, byte [arg(1)]
+	cmp al, '0'			; if EDX < '0'
 	jl .false			;	return false
-	cmp eax, '9'			; if EDX > '9'
+	cmp al, '9'			; if EDX > '9'
 	jg .false			;	return false
 					; else
 	mov eax, 1			;	return true
